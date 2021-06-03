@@ -2,6 +2,8 @@ import * as adal from 'adal-node';
 import dayjs, { Dayjs, OpUnitType } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import * as dotenv from 'dotenv';
+import faker from 'faker';
+import * as jwt from '../../utils/jwt';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { Clipboard, commands, env, QuickPickItem, QuickPickOptions, TextDocument, Uri, window } from 'vscode';
@@ -14,6 +16,7 @@ import { AadV2TokenProvider } from '../aadV2TokenProvider';
 import { HttpClient } from '../httpClient';
 import { EnvironmentVariableProvider } from './environmentVariableProvider';
 import { HttpVariable, HttpVariableContext, HttpVariableProvider } from './httpVariableProvider';
+import { FileVariableProvider } from './fileVariableProvider';
 
 const uuidv4 = require('uuid/v4');
 
@@ -38,7 +41,12 @@ export class SystemVariableProvider implements HttpVariableProvider {
 
     private readonly aadRegex: RegExp = new RegExp(`\\s*\\${Constants.AzureActiveDirectoryVariableName}(\\s+(${Constants.AzureActiveDirectoryForceNewOption}))?(\\s+(ppe|public|cn|de|us))?(\\s+([^\\.]+\\.[^\\}\\s]+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}))?(\\s+aud:([^\\.]+\\.[^\\}\\s]+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}))?\\s*`);
 
+    private readonly fakerRegex: RegExp = new RegExp(`\\${Constants.FakerVariableName}\\s+(\\w+\\..+)`);
+
+    private readonly jwtRegex: RegExp = new RegExp(`\\${Constants.JwtVariableName}\\s(\\%)?(\\w+)\\s(\\%)?(\\w+)`);
+
     private readonly innerSettingsEnvironmentVariableProvider: EnvironmentVariableProvider =  EnvironmentVariableProvider.Instance;
+
     private static _instance: SystemVariableProvider;
 
     public static get Instance(): SystemVariableProvider {
@@ -60,6 +68,8 @@ export class SystemVariableProvider implements HttpVariableProvider {
         this.registerDotenvVariable();
         this.registerAadTokenVariable();
         this.registerAadV2TokenVariable();
+        this.registerFakerVariable();
+        this.registerJwtTokenVariable();
     }
 
     public readonly type: VariableType = VariableType.System;
@@ -199,9 +209,14 @@ export class SystemVariableProvider implements HttpVariableProvider {
             if (groups !== null && groups.length === 3) {
                 const parsed = dotenv.parse(await fs.readFile(absolutePath));
                 const [, refToggle, key] = groups;
-                let dotEnvVarName = key;
+                let dotEnvVarName;
                 if (refToggle !== undefined) {
-                    dotEnvVarName = await this.resolveSettingsEnvironmentVariable(key);
+                    const { value, error, warning } = await FileVariableProvider.Instance.get(key,document);
+                    if( !error && !warning){
+                        dotEnvVarName = value;
+                    }else{
+                        dotEnvVarName = await this.resolveSettingsEnvironmentVariable(key);
+                    }
                 }
                 if (!(dotEnvVarName in parsed)) {
                     return { warning: ResolveWarningMessage.DotenvVariableNotFound };
@@ -292,6 +307,38 @@ export class SystemVariableProvider implements HttpVariableProvider {
                 return {value: token};
             });
     }
+
+    private registerFakerVariable() {
+        this.resolveFuncs.set(Constants.FakerVariableName, async name => {
+            const groups = this.fakerRegex.exec(name);
+            if (groups !== null && groups.length === 2) {
+                const [, expression] = groups;
+                return { value: (faker.fake("{{" + expression + "}}")) };
+            }
+
+            return { warning: ResolveWarningMessage.IncorrectFakerVariableFormat };
+        });
+    }
+
+    private registerJwtTokenVariable(){
+        this.resolveFuncs.set(Constants.JwtVariableName, async (name,document) => {
+            const groups = this.jwtRegex.exec(name);
+            if (groups !== null && groups.length === 5) {
+                const [, refToggle1, key1, refToggle2, key2] = groups;
+                let jwtKey:any = key1;
+                let jwtSecret:any = key2;
+                if(refToggle1 != undefined){
+                    jwtKey = await this.resolveEnvironmentVariable(key1,document);
+                }
+                if(refToggle2 != undefined){
+                    jwtSecret = await this.resolveEnvironmentVariable(key2,document);
+                }
+                return { value: (jwt.jwt(jwtKey, jwtSecret)) };
+            }
+            return { warning: ResolveWarningMessage.IncorrectJwtVariableFormat };
+        });
+    }
+
     private async resolveSettingsEnvironmentVariable(name: string) {
         if (await this.innerSettingsEnvironmentVariableProvider.has(name)) {
             const { value, error, warning } =  await this.innerSettingsEnvironmentVariableProvider.get(name);
@@ -302,6 +349,15 @@ export class SystemVariableProvider implements HttpVariableProvider {
             }
         } else {
             return name;
+        }
+    }
+
+    private async resolveEnvironmentVariable(name: string, document: TextDocument){
+        const { value, error, warning } = await FileVariableProvider.Instance.get(name,document);
+        if( !error && !warning){
+            return value;
+        }else{
+            return await this.resolveSettingsEnvironmentVariable(name);
         }
     }
 

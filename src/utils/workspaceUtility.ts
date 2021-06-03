@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { TextDocument, window, workspace } from 'vscode';
+import { LastDocmentCache } from './LastDocumentCache';
 
 export function getWorkspaceRootPath(): string | undefined {
     const document = getCurrentTextDocument();
@@ -21,5 +22,8 @@ export function getCurrentHttpFileName(): string | undefined {
 }
 
 export function getCurrentTextDocument(): TextDocument | undefined {
-    return window.activeTextEditor?.document;
+    if(window.activeTextEditor != undefined){
+        return window.activeTextEditor.document;
+    }
+    return LastDocmentCache.get();
 }

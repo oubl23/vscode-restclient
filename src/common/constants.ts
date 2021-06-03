@@ -23,6 +23,10 @@ export const AzureActiveDirectoryVariableName = "$aadToken";
 export const AzureActiveDirectoryDescription = "Prompts to sign in to Azure AD and adds the token to the request";
 export const AzureActiveDirectoryV2TokenVariableName = "$aadV2Token";
 export const AzureActiveDirectoryV2TokenDescription = "Prompts to sign in to Azure AD V2 and adds the token to the request";
+export const FakerVariableName = "$faker";
+export const FakerDescription = "Generate realistic fake data for testing";
+export const JwtVariableName = "$jwt";
+export const JwtDescription = "Generate jwt toke";
 
 /**
  * NOTE: The client id represents an AAD app people sign in to. The client id is sent to AAD to indicate what app
@@ -69,5 +73,7 @@ export const RequestVariableDefinitionWithNameRegexFactory = (name: string, flag
 export const RequestVariableDefinitionRegex: RegExp = RequestVariableDefinitionWithNameRegexFactory("\\w+", "m");
 
 export const NoteCommentRegex = /^\s*(?:#{1,}|\/{2,})\s*@note\s*$/m;
+
+export const BeforeDefinitionRegex: RegExp = /^\s*(?:#{1,}|\/{2,})\s*@before\s(.*?)\s*$/m;
 
 export const LineSplitterRegex: RegExp = /\r?\n/g;

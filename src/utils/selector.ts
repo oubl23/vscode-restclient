@@ -134,7 +134,7 @@ export class Selector {
         return Constants.NoteCommentRegex.test(text);
     }
 
-    private static getDelimitedText(fullText: string, currentLine: number): string | null {
+    public static getDelimitedText(fullText: string, currentLine: number): string | null {
         const lines: string[] = fullText.split(Constants.LineSplitterRegex);
         const delimiterLineNumbers: number[] = this.getDelimiterRows(lines);
         if (delimiterLineNumbers.length === 0) {

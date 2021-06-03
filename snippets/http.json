@@ -94,6 +94,13 @@
         ],
         "description": "Define Request Variable"
     },
+    "Request before": {
+        "prefix": "rb",
+        "body": [
+            "# @before ${1:Request_Before}"
+        ],
+        "description": "Define Request Before"
+    },
     "Request confirmation": {
         "prefix": "note",
         "body": [

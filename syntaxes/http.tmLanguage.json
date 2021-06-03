@@ -154,7 +154,37 @@
           "name": "comment.line.sharp.http"
         },
         {
-          "match": "^\\s*\\/{2,}\\s+(?:((@)name)\\s+([^\\s\\.]+))$",
+          "match": "^\\s*\\/{2,}\\s+(?:((@)name)\\s+(.*+))$",
+          "captures": {
+            "1": {
+              "name": "entity.other.attribute-name"
+            },
+            "2": {
+              "name": "punctuation.definition.block.tag.metadata"
+            },
+            "3": {
+              "name": "entity.name.type.http"
+            }
+          },
+          "name": "comment.line.double-slash.http"
+        },
+        {
+          "match": "^\\s*\\#{1,}\\s+(?:((@)before)\\s+(.*+))$",
+          "captures": {
+            "1": {
+              "name": "entity.other.attribute-name"
+            },
+            "2": {
+              "name": "punctuation.definition.block.tag.metadata"
+            },
+            "3": {
+              "name": "entity.name.type.http"
+            }
+          },
+          "name": "comment.line.sharp.http"
+        },
+        {
+          "match": "^\\s*\\/{2,}\\s+(?:((@)before)\\s+([^\\s\\.]+))$",
           "captures": {
             "1": {
               "name": "entity.other.attribute-name"
